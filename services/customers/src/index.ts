@@ -1,25 +1,39 @@
 import express, { Request, Response, NextFunction } from "express";
+import admin from "firebase-admin";
 
 const app = express();
-const PORT = 3000;
 
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-interface Customer {
-  id: number;
-  username: string;
-  email: string;
-}
-
-const customers: Customer[] = [
-  { id: 1, username: "customer1", email: "customer1@gmail.com" },
-  { id: 2, username: "customer2", email: "customer2@gmail.com" },
-];
-
-app.get("/customers", (req: Request, res: Response) => {
-  res.json(customers);
+admin.initializeApp({
+  credential: admin.credential.applicationDefault(),
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+const db = admin.firestore();
+
+interface Customer {
+  name: string;
+  email: string;
+  cpf: string;
+  fee: number;
+}
+
+app.get("/", async (req: Request, res: Response) => {
+  const customersSnapshot = await db.collection("customers").get();
+  const customersWithId = customersSnapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  }));
+  res.json(customersWithId);
+});
+
+app.post("/", async (req: Request, res: Response) => {
+  const newCustomer: Customer = req.body;
+  await db.collection("customers").add(newCustomer);
+  res.status(201).send();
+});
+
+app.listen(process.env.PORT, () => {
+  console.log(`Server is running on port ${process.env.PORT}`);
 });
