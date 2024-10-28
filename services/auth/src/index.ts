@@ -8,7 +8,6 @@ declare module "express-serve-static-core" {
 import jwt from "jsonwebtoken";
 
 const app = express();
-const PORT = 3000;
 const SECRET_KEY = process.env.JWT_SECRET;
 
 if (!SECRET_KEY) {
@@ -62,10 +61,14 @@ const authenticateJWT = (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
+app.get("/hello", (req: Request, res: Response) => {
+  res.send("Hello World!");
+});
+
 app.get("/protected", authenticateJWT, (req: Request, res: Response) => {
   res.json({ message: "This is a protected route", user: req.user });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+app.listen(process.env.PORT, () => {
+  console.log(`Server is running on port ${process.env.PORT}`);
 });

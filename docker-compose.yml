@@ -1,14 +1,24 @@
-version: "3.8"
-
 services:
+  gateway:
+    image: nginx:latest
+    container_name: gateway_service
+    volumes:
+      - ./services/gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+    networks:
+      - auth-network
+
   auth:
     build:
       context: ./services/auth
     container_name: auth_service
-    ports:
-      - "5000:3000"
+    volumes:
+      - ./secrets/tapago-admin.json:/app/secrets/firebase-admin.json
     environment:
       - JWT_SECRET=${JWT_SECRET}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/firebase-admin.json
+      - PORT=3000
     networks:
       - auth-network
 
@@ -16,10 +26,25 @@ services:
     build:
       context: ./services/customers
     container_name: customers_service
-    ports:
-      - "5001:3000"
+    volumes:
+      - ./secrets/tapago-admin.json:/app/secrets/firebase-admin.json
     environment:
       - JWT_SECRET=${JWT_SECRET}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/firebase-admin.json
+      - PORT=3000
+    networks:
+      - auth-network
+
+  transactions:
+    build:
+      context: ./services/transactions
+    container_name: transactions_service
+    volumes:
+      - ./secrets/tapago-admin.json:/app/secrets/firebase-admin.json
+    environment:
+      - JWT_SECRET=${JWT_SECRET}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/firebase-admin.json
+      - PORT=3000
     networks:
       - auth-network
 
