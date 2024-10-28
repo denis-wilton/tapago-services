@@ -35,8 +35,11 @@ interface Transaction {
 
 app.get("/", async (req: Request, res: Response) => {
   const transactionsSnapshot = await db.collection("transactions").get();
-  const transactions = transactionsSnapshot.docs.map((doc) => doc.data());
-  res.json(transactions);
+  const transactionsWithId = transactionsSnapshot.docs.map((doc) => ({
+    id: doc.id,
+    ...doc.data(),
+  }));
+  res.json(transactionsWithId);
 });
 
 app.get("/customer/:customerCpf", async (req: Request, res: Response) => {
@@ -57,12 +60,14 @@ app.get("/customer/:customerCpf", async (req: Request, res: Response) => {
     .where("customerId", "==", customer.id)
     .get();
 
-  const transactions = transactionsSnapshot.docs.map((doc) => doc.data());
-
-  const transactionsWithCustomerDetails = transactions.map((transaction) => ({
-    ...transaction,
-    customer,
-  }));
+  const transactionsWithCustomerDetails = transactionsSnapshot.docs.map(
+    (doc) => ({
+      ...doc.data(),
+      customerId: undefined,
+      transactionId: doc.id,
+      customer,
+    })
+  );
 
   res.json(transactionsWithCustomerDetails);
 });
@@ -85,6 +90,59 @@ app.post("/", async (req: Request, res: Response) => {
     });
   console.log("Transaction created successfully");
   res.status(201).send();
+});
+
+app.put("/", async (req: Request, res: Response) => {
+  const {
+    transactionId,
+    ...updatedTransaction
+  }: Transaction & { transactionId: string } = req.body;
+
+  if (!transactionId) {
+    res.status(400).send();
+    return;
+  }
+
+  console.log(
+    `Updating transaction ${transactionId} with: ${JSON.stringify(
+      updatedTransaction
+    )}`
+  );
+  await db
+    .collection("transactions")
+    .doc(transactionId)
+    .update({
+      ...updatedTransaction,
+      updatedAt: new Date().toISOString(),
+    })
+    .catch((error) => {
+      console.error(error);
+      res.status(500).send("Error updating transaction: " + error);
+      return;
+    });
+  console.log("Transaction updated successfully");
+  res.status(200).send();
+});
+
+app.delete("/", async (req: Request, res: Response) => {
+  const transactionId = req.body.transactionId;
+  if (!transactionId) {
+    res.status(400).send();
+    return;
+  }
+
+  console.log(`Deleting transaction ${transactionId}`);
+  await db
+    .collection("transactions")
+    .doc(transactionId)
+    .delete()
+    .catch((error) => {
+      console.error(error);
+      res.status(500).send("Error deleting transaction: " + error);
+      return;
+    });
+  console.log("Transaction deleted successfully");
+  res.status(204).send();
 });
 
 app.listen(process.env.PORT, () => {

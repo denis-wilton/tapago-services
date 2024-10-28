@@ -17,6 +17,7 @@ services:
       - ./secrets/tapago-admin.json:/app/secrets/firebase-admin.json
     environment:
       - JWT_SECRET=${JWT_SECRET}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
       - GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/firebase-admin.json
       - PORT=3000
     networks:
@@ -30,6 +31,21 @@ services:
       - ./secrets/tapago-admin.json:/app/secrets/firebase-admin.json
     environment:
       - JWT_SECRET=${JWT_SECRET}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/firebase-admin.json
+      - PORT=3000
+    networks:
+      - auth-network
+
+  users:
+    build:
+      context: ./services/users
+    container_name: users_service
+    volumes:
+      - ./secrets/tapago-admin.json:/app/secrets/firebase-admin.json
+    environment:
+      - JWT_SECRET=${JWT_SECRET}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
       - GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/firebase-admin.json
       - PORT=3000
     networks:
@@ -43,6 +59,7 @@ services:
       - ./secrets/tapago-admin.json:/app/secrets/firebase-admin.json
     environment:
       - JWT_SECRET=${JWT_SECRET}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
       - GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/firebase-admin.json
       - PORT=3000
     networks:

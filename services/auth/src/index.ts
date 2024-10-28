@@ -1,11 +1,13 @@
-import express, { Request, Response, NextFunction } from "express";
+import cookieParser from "cookie-parser";
+import express, { Request, Response } from "express";
+import cors from "cors";
+import jwt from "jsonwebtoken";
 
 declare module "express-serve-static-core" {
   interface Request {
     user?: any;
   }
 }
-import jwt from "jsonwebtoken";
 
 const app = express();
 const SECRET_KEY = process.env.JWT_SECRET;
@@ -14,59 +16,80 @@ if (!SECRET_KEY) {
   throw new Error("JWT_SECRET is not defined");
 }
 
-app.use(express.json());
-
-interface User {
-  id: number;
-  username: string;
-  password: string;
+if (!process.env.ALLOWED_ORIGINS) {
+  throw new Error("ALLOWED_ORIGINS is not defined");
 }
+app.use(cookieParser());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+const allowedOrigins = process.env.ALLOWED_ORIGINS.split(",");
 
-const users: User[] = [
-  { id: 1, username: "user1", password: "password1" },
-  { id: 2, username: "user2", password: "password2" },
-];
-
-app.post("/login", (req: Request, res: Response) => {
-  const { username, password } = req.body;
-  const user = users.find(
-    (u) => u.username === username && u.password === password
-  );
-
-  if (user) {
-    const token = jwt.sign(
-      { id: user.id, username: user.username },
-      SECRET_KEY,
-      { expiresIn: "1h" }
-    );
-    res.json({ token });
-  } else {
-    res.status(401).json({ message: "Invalid credentials" });
-  }
-});
-
-const authenticateJWT = (req: Request, res: Response, next: NextFunction) => {
-  const token = req.headers.authorization?.split(" ")[1];
-
-  if (token) {
-    jwt.verify(token, SECRET_KEY, (err, user) => {
-      if (err) {
-        return res.sendStatus(403);
-      }
-      req.user = user;
-      next();
-    });
-  } else {
-    res.sendStatus(401);
-  }
+const corsOptions = {
+  origin: (
+    origin: string | undefined,
+    callback: (err: Error | null, allow?: boolean) => void
+  ) => {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
 };
 
-app.get("/hello", (req: Request, res: Response) => {
-  res.send("Hello World!");
+app.use(cors(corsOptions));
+
+app.post("/login", async (req: Request, res: Response) => {
+  try {
+    const response = await fetch(`http://users:3000/${req.body.username}`);
+    if (!response.ok) {
+      res.status(401).send("Invalid username or password");
+      return;
+    }
+
+    const user = await response.json();
+    if (user.password !== req.body.password) {
+      res.status(401).send("Invalid username or password");
+      return;
+    }
+
+    const token = jwt.sign(
+      { username: user.username, role: user.role },
+      SECRET_KEY
+    );
+    res.cookie("token", token, { httpOnly: true });
+    res.json({ token });
+  } catch (error) {
+    res.status(500).send("Internal server error");
+  }
 });
 
-app.get("/protected", authenticateJWT, (req: Request, res: Response) => {
-  res.json({ message: "This is a protected route", user: req.user });
+app.post("/logout", async (req: Request, res: Response) => {
+  res.clearCookie("token");
+  res.send();
+});
+
+app.get("/me", async (req: Request, res: Response) => {
+  if (!req.cookies) {
+    res.status(401).send("Unable to get cookies");
+    return;
+  }
+
+  const token = req.cookies.token;
+
+  if (!token) {
+    res.status(401).send("Unauthorized");
+    return;
+  }
+
+  try {
+    const decoded = jwt.verify(token, SECRET_KEY);
+    req.user = decoded;
+    res.json(req.user);
+  } catch (error) {
+    res.status(401).send("Unauthorized");
+  }
 });
 
 app.listen(process.env.PORT, () => {
