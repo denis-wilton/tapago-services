@@ -16,30 +16,36 @@ if (!SECRET_KEY) {
   throw new Error("JWT_SECRET is not defined");
 }
 
-if (!process.env.ALLOWED_ORIGINS) {
-  throw new Error("ALLOWED_ORIGINS is not defined");
-}
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-const allowedOrigins = process.env.ALLOWED_ORIGINS.split(",");
 
-const corsOptions = {
-  origin: (
-    origin: string | undefined,
-    callback: (err: Error | null, allow?: boolean) => void
-  ) => {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      console.log("Not allowed by CORS", origin);
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  credentials: true,
-};
+function setupCors(app: express.Application) {
+  if (!process.env.ALLOWED_ORIGINS) {
+    throw new Error("ALLOWED_ORIGINS is not defined");
+  }
 
-app.use(cors(corsOptions));
+  const allowedOrigins = process.env.ALLOWED_ORIGINS.split(",");
+
+  const corsOptions = {
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void
+    ) => {
+      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        console.log("Not allowed by CORS", origin);
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  };
+
+  app.use(cors(corsOptions));
+}
+
+setupCors(app);
 
 app.post("/login", async (req: Request, res: Response) => {
   try {

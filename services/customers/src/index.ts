@@ -1,10 +1,38 @@
 import express, { Request, Response, NextFunction } from "express";
 import admin from "firebase-admin";
+import cors from "cors";
 
 const app = express();
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+
+function setupCors(app: express.Application) {
+  if (!process.env.ALLOWED_ORIGINS) {
+    throw new Error("ALLOWED_ORIGINS is not defined");
+  }
+
+  const allowedOrigins = process.env.ALLOWED_ORIGINS.split(",");
+
+  const corsOptions = {
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void
+    ) => {
+      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        console.log("Not allowed by CORS", origin);
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  };
+
+  app.use(cors(corsOptions));
+}
+
+setupCors(app);
 
 admin.initializeApp({
   credential: admin.credential.applicationDefault(),
@@ -26,6 +54,10 @@ app.get("/", async (req: Request, res: Response) => {
     ...doc.data(),
   }));
   res.json(customersWithId);
+});
+
+app.get("/version", async (req: Request, res: Response) => {
+  res.json({ version: "1.0.0" });
 });
 
 app.post("/", async (req: Request, res: Response) => {
