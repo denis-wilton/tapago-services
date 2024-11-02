@@ -70,8 +70,8 @@ app.get("/", async (req: Request, res: Response) => {
   res.json(transactionsWithId);
 });
 
-app.get("/customer/:customerCpf", async (req: Request, res: Response) => {
-  const customerCpf = req.params.customerCpf;
+app.get("/customer/:cpf", async (req: Request, res: Response) => {
+  const customerCpf = req.params.cpf;
   const customer = (
     await fetch(`http://customers:3000/`).then((res) => res.json())
   ).find(
