@@ -66,6 +66,19 @@ app.post("/", async (req: Request, res: Response) => {
   res.status(201).send();
 });
 
+app.put("/", async (req: Request, res: Response) => {
+  const { id, ...updatedCustomer }: Partial<Customer> & { id: string } =
+    req.body;
+  await db.collection("customers").doc(id).update(updatedCustomer);
+  res.status(200).send();
+});
+
+app.delete("/", async (req: Request, res: Response) => {
+  const { id }: { id: string } = req.body;
+  await db.collection("customers").doc(id).delete();
+  res.status(204).send();
+});
+
 app.listen(process.env.PORT, () => {
   console.log(`Server is running on port ${process.env.PORT}`);
 });
