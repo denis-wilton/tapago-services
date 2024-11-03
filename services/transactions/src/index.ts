@@ -173,6 +173,39 @@ app.delete("/", async (req: Request, res: Response) => {
   res.status(204).send();
 });
 
+app.delete("/customer/:cpf", async (req: Request, res: Response) => {
+  const customerCpf = req.params.cpf;
+  const customer = (
+    await fetch(`http://customers:3000/`).then((res) => res.json())
+  ).find(
+    (customer: { id: string; cpf: string }) => customer.cpf === customerCpf
+  );
+
+  if (!customer) {
+    res.status(404).send();
+    return;
+  }
+
+  const transactionsSnapshot = await db
+    .collection("transactions")
+    .where("customerId", "==", customer.id)
+    .get();
+
+  const batch = db.batch();
+  transactionsSnapshot.docs.forEach((doc) => {
+    batch.delete(doc.ref);
+  });
+
+  await batch.commit().catch((error) => {
+    console.error(error);
+    res.status(500).send("Error deleting transactions: " + error);
+    return;
+  });
+
+  console.log(`Deleted all transactions for customer ${customerCpf}`);
+  res.status(204).send();
+});
+
 app.listen(process.env.PORT, () => {
   console.log(`Server is running on port ${process.env.PORT}`);
 });
