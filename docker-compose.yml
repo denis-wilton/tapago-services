@@ -65,13 +65,6 @@ services:
     networks:
       - auth-network
 
-  seed:
-    build:
-      context: ./services/seed
-    container_name: seed_service
-    networks:
-      - auth-network
-
 networks:
   auth-network:
     driver: bridge
