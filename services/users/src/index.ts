@@ -20,7 +20,12 @@ function setupCors(app: express.Application) {
       callback: (err: Error | null, allow?: boolean) => void
     ) => {
       console.log("CORS origin", origin);
-      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      if (
+        !origin ||
+        allowedOrigins.some((allowedOrigin) =>
+          allowedOrigin.toLowerCase().includes(origin.toLowerCase())
+        )
+      ) {
         callback(null, true);
       } else {
         callback(new Error("Not allowed by CORS"));

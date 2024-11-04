@@ -32,7 +32,12 @@ function setupCors(app: express.Application) {
       origin: string | undefined,
       callback: (err: Error | null, allow?: boolean) => void
     ) => {
-      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      if (
+        !origin ||
+        allowedOrigins.some((allowedOrigin) =>
+          allowedOrigin.toLowerCase().includes(origin.toLowerCase())
+        )
+      ) {
         callback(null, true);
       } else {
         console.log("Not allowed by CORS", origin);
