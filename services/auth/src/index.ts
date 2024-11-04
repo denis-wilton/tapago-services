@@ -83,23 +83,30 @@ app.post("/logout", async (req: Request, res: Response) => {
 });
 
 app.get("/me", async (req: Request, res: Response) => {
+  console.log("Received request for /me");
+
   if (!req.cookies) {
+    console.log("No cookies found");
     res.status(401).send("Unable to get cookies");
     return;
   }
 
   const token = req.cookies.token;
+  console.log("Token from cookies:", token);
 
   if (!token) {
+    console.log("No token found in cookies");
     res.status(401).send("Unauthorized");
     return;
   }
 
   try {
     const decoded = jwt.verify(token, SECRET_KEY);
+    console.log("Token decoded successfully:", decoded);
     req.user = decoded;
     res.json(req.user);
   } catch (error) {
+    console.log("Error verifying token:", error);
     res.status(401).send("Unauthorized");
   }
 });
